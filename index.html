@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Trading Roadmap</title>
+    <title>Interactive Trading Roadmap with AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Trader (Slate Gray, Soft Blue, Off-White) -->
-    <!-- Application Structure Plan: The application is structured as a visual, interactive journey through the six phases of learning to trade. A sticky top navigation bar with stepper-style links allows users to jump between phases or track their progress as they scroll. This non-linear, task-oriented design was chosen over a simple document layout to make learning more engaging and manageable. Each phase is a self-contained section with interactive elements like clickable glossaries, CSS-based diagrams, and a Chart.js visualization, encouraging active participation rather than passive reading. This structure breaks down complex information into digestible chunks, enhancing user understanding and retention. -->
+    <!-- Application Structure Plan: The application is structured as a visual, interactive journey through the six phases of learning to trade. A sticky top navigation bar with stepper-style links allows users to jump between phases or track their progress as they scroll. This non-linear, task-oriented design was chosen over a simple document layout to make learning more engaging and manageable. Each phase is a self-contained section with interactive elements like clickable glossaries, CSS-based diagrams, and a Chart.js visualization, encouraging active participation rather than passive reading. This structure breaks down complex information into digestible chunks, enhancing user understanding and retention. Gemini API features have been added to Phase 1 for asking questions and Phase 4 for analyzing practice trades, making the learning process dynamic and personalized. -->
     <!-- Visualization & Content Choices: 
         - Report Info: Phase 1 Key Terms -> Goal: Inform -> Viz/Presentation: Interactive card grid -> Interaction: Click to reveal definition -> Justification: More engaging than a static list, encourages exploration. -> Library/Method: HTML/CSS/JS.
+        - Report Info: Phase 1 User Questions -> Goal: Inform/Engage -> Viz/Presentation: Input field and response area -> Interaction: User types a question, clicks a button, and gets an AI-generated answer. -> Justification: Provides instant, dynamic learning beyond the pre-defined terms. -> Library/Method: Gemini API.
         - Report Info: Phase 2 Candlestick Anatomy -> Goal: Inform/Organize -> Viz/Presentation: Custom HTML/CSS diagram -> Interaction: Hover over candle parts to see labels -> Justification: Provides a direct, hands-on way to learn without a static image. -> Library/Method: HTML/CSS/JS.
         - Report Info: Phase 3 Risk-to-Reward Ratio -> Goal: Compare/Inform -> Viz/Presentation: Bar Chart -> Interaction: Visual representation of a 1:2 ratio. -> Justification: A chart is far more impactful for understanding this core concept than text alone. -> Library/Method: Chart.js (Canvas).
         - Report Info: Phase 3 1% Rule -> Goal: Inform/Engage -> Viz/Presentation: Simple interactive calculator -> Interaction: User inputs capital, sees the calculated max risk amount. -> Justification: A practical tool to solidify a crucial rule. -> Library/Method: HTML/JS.
-        - Report Info: Phase 4 Trading Journal -> Goal: Inform -> Viz/Presentation: Dynamic HTML table -> Interaction: Button adds an example trade entry. -> Justification: Demonstrates the practical use of a journal. -> Library/Method: HTML/JS.
+        - Report Info: Phase 4 Trading Journal Analysis -> Goal: Analyze/Inform -> Viz/Presentation: Button and response area -> Interaction: User clicks a button to get an AI-powered analysis of their logged trades. -> Justification: Offers personalized feedback to help users identify patterns and improve their strategy. -> Library/Method: Gemini API.
         All other information is presented in clean, well-structured text blocks with clear headings to maintain readability and context. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -69,8 +70,8 @@
         }
         .candlestick-container {
             display: flex;
-            gap: 2rem;
-            align-items: flex-end;
+            gap: 5rem;
+            align-items: center;
             justify-content: center;
             min-height: 250px;
         }
@@ -86,12 +87,12 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
+            height: 100%;
         }
-        .wick-top { top: 0; }
-        .wick-bottom { bottom: 0; }
         .real-body {
             width: 50px;
             position: absolute;
+            z-index: 5;
         }
         .candlestick .label {
             position: absolute;
@@ -104,16 +105,17 @@
             pointer-events: none;
             font-size: 0.8rem;
             white-space: nowrap;
+            z-index: 10;
         }
         .candlestick:hover .label {
             opacity: 1;
         }
         .label-high { top: -25px; }
         .label-low { bottom: -25px; }
-        .label-open-bullish { top: calc(100% - 40px); left: 110%; }
-        .label-close-bullish { top: 10px; left: 110%; }
-        .label-open-bearish { top: 10px; right: 110%; }
-        .label-close-bearish { top: calc(100% - 40px); right: 110%; }
+        .label-open-bullish { top: calc(100% - 40px); left: calc(100% + 8px); }
+        .label-close-bullish { top: 10px; left: calc(100% + 8px); }
+        .label-open-bearish { top: 10px; right: calc(100% + 8px); }
+        .label-close-bearish { top: calc(100% - 40px); right: calc(100% + 8px); }
         .chart-container {
             position: relative;
             width: 100%;
@@ -122,6 +124,18 @@
             margin-right: auto;
             height: 300px;
             max-height: 350px;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -179,6 +193,19 @@
                 <p class="mb-6 text-slate-700">Before you place a single trade, you must understand the world you're stepping into. This phase is all about building a solid base of knowledge, learning the core concepts and the language of the market. Interact with the cards below to explore the key terminology.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="key-terms-grid">
                 </div>
+
+                <div class="mt-8 pt-6 border-t border-slate-200">
+                    <h3 class="text-xl font-semibold mb-4">✨ Ek Sawaal Puchhen</h3>
+                    <p class="mb-4 text-slate-700">Koi trading term samajh nahi aa raha? Yahan type karke puchhen aur AI se saral bhasha mein jawaab paayein.</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="ai-question-input" placeholder="Jaise ki, 'What is a stop loss?'" class="w-full p-2 border border-slate-300 rounded">
+                        <button id="ask-ai-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center">Puchho</button>
+                    </div>
+                    <div id="ai-answer-container" class="mt-4 p-4 bg-slate-100 rounded min-h-[50px]">
+                        <p id="ai-answer-text" class="text-slate-600">Aapka jawaab yahan dikhega...</p>
+                        <div id="ai-loader" class="hidden mx-auto loader"></div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -189,7 +216,9 @@
                  <p class="mb-6 text-slate-700">Now it's time to learn how to read the market. This involves two main schools of thought: Technical Analysis (studying charts) and Fundamental Analysis (studying economic factors). For beginners, Technical Analysis is the best place to start. This section will help you understand the visual language of the market.</p>
                 <h3 class="text-xl font-semibold mb-4">Candlestick Charts: The Language of Price</h3>
                  <p class="mb-6 text-slate-700">You MUST learn to read candlestick charts. Each candle tells a story about the battle between buyers and sellers over a specific time. Hover over the different parts of the interactive candles below to see what they represent.</p>
-                <div class="candlestick-container bg-slate-100 p-6 rounded-lg">
+                <div class="bg-slate-100 py-8 px-4 rounded-lg">
+                    <div class="candlestick-container">
+                    </div>
                 </div>
                  <p class="mt-6 text-slate-700">Once you understand candles, you'll learn to spot patterns and use key indicators like Moving Averages, RSI, and Volume to make informed decisions. Your goal is to combine these tools to analyze potential trades.</p>
                  <div class="mt-4 text-center">
@@ -238,7 +267,7 @@
                                 <th class="p-2 border border-slate-200">Entry</th>
                                 <th class="p-2 border border-slate-200">Exit</th>
                                 <th class="p-2 border border-slate-200">Reason</th>
-                                <th class="p-2 border border-slate-200">P/L</th>
+                                <th class="p-2 border border-slate-200">P/L (₹)</th>
                             </tr>
                         </thead>
                         <tbody id="trade-log">
@@ -248,7 +277,7 @@
                                 <td class="p-2 border border-slate-200">23500</td>
                                 <td class="p-2 border border-slate-200">23550</td>
                                 <td class="p-2 border border-slate-200">Breakout</td>
-                                <td class="p-2 border border-slate-200 text-green-600">+₹500</td>
+                                <td class="p-2 border border-slate-200 text-green-600" data-pl="500">+500</td>
                             </tr>
                              <tr>
                                 <td class="p-2 border border-slate-200">2025-07-22</td>
@@ -256,7 +285,7 @@
                                 <td class="p-2 border border-slate-200">2800</td>
                                 <td class="p-2 border border-slate-200">2780</td>
                                 <td class="p-2 border border-slate-200">Trend Reversal</td>
-                                <td class="p-2 border border-slate-200 text-red-600">-₹250</td>
+                                <td class="p-2 border border-slate-200 text-red-600" data-pl="-250">-250</td>
                             </tr>
                         </tbody>
                     </table>
@@ -265,6 +294,19 @@
                      <button id="add-trade-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition">Add Example Trade</button>
                 </div>
                  <p class="mt-6 text-center text-red-600 font-semibold">Important: If you are not profitable on paper after 50-100 trades, DO NOT proceed. Refine your plan.</p>
+
+                 <div class="mt-8 pt-6 border-t border-slate-200">
+                    <h3 class="text-xl font-semibold mb-4">✨ Mere Trades ka Vishleshan Karein</h3>
+                    <p class="mb-4 text-slate-700">Apne practice trades se sikhein. Is button ko click karke AI se apne performance ka analysis praapt karein, taaki aap apni strengths aur weaknesses ko pehchaan sakein.</p>
+                    <div class="text-center">
+                        <button id="analyze-trades-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">Analyze My Trades</button>
+                    </div>
+                    <div id="analysis-container" class="mt-4 p-4 bg-slate-100 rounded min-h-[50px]">
+                        <p id="analysis-text" class="text-slate-600">Vishleshan yahan dikhega...</p>
+                        <div id="analysis-loader" class="hidden mx-auto loader"></div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
@@ -341,10 +383,10 @@
                 card.className = 'card-flip h-32 cursor-pointer';
                 card.innerHTML = `
                     <div class="card-inner">
-                        <div class="card-front bg-slate-100 hover:bg-slate-200">
+                        <div class="card-front bg-slate-100 hover:bg-slate-200 flex items-center justify-center p-4">
                             <h4 class="font-semibold text-center text-slate-700">${item.term}</h4>
                         </div>
-                        <div class="card-back bg-blue-500 text-white">
+                        <div class="card-back bg-blue-500 text-white flex items-center justify-center p-4">
                             <p class="text-sm text-center">${item.def}</p>
                         </div>
                     </div>
@@ -359,11 +401,11 @@
             phaseData['phase-2'].candlesticks.forEach(candle => {
                 const candleEl = document.createElement('div');
                 candleEl.className = 'candlestick';
+                candleEl.style.height = `${candle.wickHeight}px`;
 
                 const wick = document.createElement('div');
                 wick.className = 'wick';
-                wick.style.height = `${candle.wickHeight}px`;
-
+                
                 const body = document.createElement('div');
                 body.className = 'real-body';
                 body.style.height = `${candle.bodyHeight}px`;
@@ -418,7 +460,7 @@
             calculateRisk();
 
             const rrChartCtx = document.getElementById('rr-chart').getContext('2d');
-            const rrChart = new Chart(rrChartCtx, {
+            new Chart(rrChartCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Potential Risk', 'Potential Reward'],
@@ -488,7 +530,7 @@
                     <td class="p-2 border border-slate-200">${trade.entry}</td>
                     <td class="p-2 border border-slate-200">${trade.exit}</td>
                     <td class="p-2 border border-slate-200">${trade.reason}</td>
-                    <td class="p-2 border border-slate-200 ${plClass}">${plSign}₹${Math.abs(trade.pl)}</td>
+                    <td class="p-2 border border-slate-200 ${plClass}" data-pl="${trade.pl}">${plSign}${Math.abs(trade.pl)}</td>
                 `;
                 tradeLogBody.appendChild(row);
                 tradeCounter++;
@@ -508,6 +550,103 @@
 
             sections.forEach(section => {
                 observer.observe(section);
+            });
+
+            // Gemini API Integration
+            const askAiBtn = document.getElementById('ask-ai-btn');
+            const questionInput = document.getElementById('ai-question-input');
+            const answerText = document.getElementById('ai-answer-text');
+            const aiLoader = document.getElementById('ai-loader');
+
+            const analyzeTradesBtn = document.getElementById('analyze-trades-btn');
+            const analysisText = document.getElementById('analysis-text');
+            const analysisLoader = document.getElementById('analysis-loader');
+
+            const callGemini = async (prompt) => {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        return "Maaf, mujhe iska jawaab nahi mil saka. Kripya dobara koshish karein.";
+                    }
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    return "Ek error aa gaya hai. Kripya apni API key check karein ya baad mein koshish karein.";
+                }
+            };
+
+            askAiBtn.addEventListener('click', async () => {
+                const question = questionInput.value.trim();
+                if (!question) {
+                    answerText.textContent = "Kripya ek sawaal type karein.";
+                    return;
+                }
+
+                answerText.classList.add('hidden');
+                aiLoader.classList.remove('hidden');
+                askAiBtn.disabled = true;
+
+                const prompt = `You are a friendly trading expert explaining concepts to a complete beginner in India. Explain the following term in simple, easy-to-understand language (2-3 sentences): "${question}"`;
+                const answer = await callGemini(prompt);
+                
+                answerText.textContent = answer;
+                aiLoader.classList.add('hidden');
+                answerText.classList.remove('hidden');
+                askAiBtn.disabled = false;
+            });
+
+            analyzeTradesBtn.addEventListener('click', async () => {
+                const trades = [];
+                const tradeRows = tradeLogBody.querySelectorAll('tr');
+
+                if (tradeRows.length === 0) {
+                    analysisText.textContent = "Analysis ke liye journal mein koi trade nahi hai.";
+                    return;
+                }
+
+                tradeRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    trades.push({
+                        asset: cells[1].textContent,
+                        reason: cells[4].textContent,
+                        pl: parseFloat(cells[5].dataset.pl)
+                    });
+                });
+
+                analysisText.classList.add('hidden');
+                analysisLoader.classList.remove('hidden');
+                analyzeTradesBtn.disabled = true;
+
+                const tradeDataString = JSON.stringify(trades, null, 2);
+                const prompt = `You are a trading coach reviewing a beginner's journal. Based on these trades:\n\n${tradeDataString}\n\nProvide a brief, encouraging analysis in simple language. Identify one potential strength and one area for improvement. Do not give financial advice. Keep it short and educational.`;
+                
+                const analysis = await callGemini(prompt);
+
+                analysisText.innerHTML = analysis.replace(/\n/g, '<br>');
+                analysisLoader.classList.add('hidden');
+                analysisText.classList.remove('hidden');
+                analyzeTradesBtn.disabled = false;
             });
         });
     </script>
