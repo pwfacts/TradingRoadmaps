@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Trading Roadmap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Trader (Slate Gray, Soft Blue, Off-White) -->
+    <!-- Application Structure Plan: The application is structured as a visual, interactive journey through the six phases of learning to trade. A sticky top navigation bar with stepper-style links allows users to jump between phases or track their progress as they scroll. This non-linear, task-oriented design was chosen over a simple document layout to make learning more engaging and manageable. Each phase is a self-contained section with interactive elements like clickable glossaries, CSS-based diagrams, and a Chart.js visualization, encouraging active participation rather than passive reading. This structure breaks down complex information into digestible chunks, enhancing user understanding and retention. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Phase 1 Key Terms -> Goal: Inform -> Viz/Presentation: Interactive card grid -> Interaction: Click to reveal definition -> Justification: More engaging than a static list, encourages exploration. -> Library/Method: HTML/CSS/JS.
+        - Report Info: Phase 2 Candlestick Anatomy -> Goal: Inform/Organize -> Viz/Presentation: Custom HTML/CSS diagram -> Interaction: Hover over candle parts to see labels -> Justification: Provides a direct, hands-on way to learn without a static image. -> Library/Method: HTML/CSS/JS.
+        - Report Info: Phase 3 Risk-to-Reward Ratio -> Goal: Compare/Inform -> Viz/Presentation: Bar Chart -> Interaction: Visual representation of a 1:2 ratio. -> Justification: A chart is far more impactful for understanding this core concept than text alone. -> Library/Method: Chart.js (Canvas).
+        - Report Info: Phase 3 1% Rule -> Goal: Inform/Engage -> Viz/Presentation: Simple interactive calculator -> Interaction: User inputs capital, sees the calculated max risk amount. -> Justification: A practical tool to solidify a crucial rule. -> Library/Method: HTML/JS.
+        - Report Info: Phase 4 Trading Journal -> Goal: Inform -> Viz/Presentation: Dynamic HTML table -> Interaction: Button adds an example trade entry. -> Justification: Demonstrates the practical use of a journal. -> Library/Method: HTML/JS.
+        All other information is presented in clean, well-structured text blocks with clear headings to maintain readability and context. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .phase-nav-link {
+            transition: all 0.3s ease;
+        }
+        .phase-nav-link.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .phase-nav-link.active .phase-circle {
+            background-color: white;
+            color: #3b82f6;
+        }
+        .phase-nav-link .phase-circle {
+            transition: all 0.3s ease;
+        }
+        .card-flip {
+            perspective: 1000px;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-flip.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        .candlestick-container {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            justify-content: center;
+            min-height: 250px;
+        }
+        .candlestick {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .wick {
+            width: 4px;
+            background-color: #475569;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .wick-top { top: 0; }
+        .wick-bottom { bottom: 0; }
+        .real-body {
+            width: 50px;
+            position: absolute;
+        }
+        .candlestick .label {
+            position: absolute;
+            background: #1e293b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .candlestick:hover .label {
+            opacity: 1;
+        }
+        .label-high { top: -25px; }
+        .label-low { bottom: -25px; }
+        .label-open-bullish { top: calc(100% - 40px); left: 110%; }
+        .label-close-bullish { top: 10px; left: 110%; }
+        .label-open-bearish { top: 10px; right: 110%; }
+        .label-close-bearish { top: calc(100% - 40px); right: 110%; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 text-center">Your Interactive Trading Roadmap</h1>
+            <nav id="phase-nav" class="mt-4 overflow-x-auto pb-2">
+                <div class="flex items-center justify-center space-x-2 md:space-x-4 min-w-max">
+                    <a href="#phase-1" data-phase="1" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">1</span>
+                        <span class="hidden md:inline font-semibold pr-2">Foundation</span>
+                    </a>
+                    <div class="w-10 h-0.5 bg-slate-300"></div>
+                    <a href="#phase-2" data-phase="2" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">2</span>
+                        <span class="hidden md:inline font-semibold pr-2">Toolkit</span>
+                    </a>
+                    <div class="w-10 h-0.5 bg-slate-300"></div>
+                    <a href="#phase-3" data-phase="3" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">3</span>
+                        <span class="hidden md:inline font-semibold pr-2">Battle Plan</span>
+                    </a>
+                    <div class="w-10 h-0.5 bg-slate-300"></div>
+                    <a href="#phase-4" data-phase="4" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">4</span>
+                        <span class="hidden md:inline font-semibold pr-2">Simulator</span>
+                    </a>
+                    <div class="w-10 h-0.5 bg-slate-300"></div>
+                    <a href="#phase-5" data-phase="5" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">5</span>
+                        <span class="hidden md:inline font-semibold pr-2">Go Live</span>
+                    </a>
+                    <div class="w-10 h-0.5 bg-slate-300"></div>
+                    <a href="#phase-6" data-phase="6" class="phase-nav-link flex items-center gap-2 p-2 border-2 border-slate-300 rounded-full bg-white hover:bg-blue-100">
+                        <span class="phase-circle flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 font-bold text-slate-600">6</span>
+                        <span class="hidden md:inline font-semibold pr-2">Learn</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        <div class="text-center mb-12">
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">Welcome to your trading journey! This guide breaks down the path from novice to competent trader into six manageable phases. Use the navigation above or scroll to explore. The key is to be patient and master each phase before moving to the next.</p>
+        </div>
+
+        <section id="phase-1" class="mb-16 scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 1: The Foundation</h2>
+            <p class="text-lg text-slate-600 mb-6">Duration: 1-2 Months</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="mb-6 text-slate-700">Before you place a single trade, you must understand the world you're stepping into. This phase is all about building a solid base of knowledge, learning the core concepts and the language of the market. Interact with the cards below to explore the key terminology.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="key-terms-grid">
+                </div>
+            </div>
+        </section>
+
+        <section id="phase-2" class="mb-16 scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 2: The Analyst's Toolkit</h2>
+            <p class="text-lg text-slate-600 mb-6">Duration: 2-3 Months</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                 <p class="mb-6 text-slate-700">Now it's time to learn how to read the market. This involves two main schools of thought: Technical Analysis (studying charts) and Fundamental Analysis (studying economic factors). For beginners, Technical Analysis is the best place to start. This section will help you understand the visual language of the market.</p>
+                <h3 class="text-xl font-semibold mb-4">Candlestick Charts: The Language of Price</h3>
+                 <p class="mb-6 text-slate-700">You MUST learn to read candlestick charts. Each candle tells a story about the battle between buyers and sellers over a specific time. Hover over the different parts of the interactive candles below to see what they represent.</p>
+                <div class="candlestick-container bg-slate-100 p-6 rounded-lg">
+                </div>
+                 <p class="mt-6 text-slate-700">Once you understand candles, you'll learn to spot patterns and use key indicators like Moving Averages, RSI, and Volume to make informed decisions. Your goal is to combine these tools to analyze potential trades.</p>
+                 <div class="mt-4 text-center">
+                    <p class="font-semibold">🎯 Action Plan:</p>
+                    <p>Get a free account on TradingView to practice charting.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="phase-3" class="mb-16 scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 3: Building Your Battle Plan</h2>
+            <p class="text-lg text-slate-600 mb-6">Duration: 1 Month</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="mb-6 text-slate-700">Trading without a plan is gambling. This phase is about creating a strict set of rules for your trading to eliminate guesswork and emotion. Your plan must define your exact rules for entry, exit (profit), and stop-loss (loss). The most critical part of your plan is risk management.</p>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Risk Management: The Most Important Part</h3>
+                        <p class="mb-4"><strong>The 1% Rule:</strong> Never risk more than 1% of your trading capital on a single trade. This ensures you can survive a string of losses. Use the calculator to see it in action.</p>
+                        <div class="bg-slate-100 p-4 rounded-lg">
+                            <label for="capital" class="font-semibold">Your Trading Capital (₹):</label>
+                            <input type="number" id="capital" value="50000" class="w-full p-2 border border-slate-300 rounded mt-1 mb-2">
+                            <p>Maximum Risk per Trade (1%): <span id="risk-amount" class="font-bold text-blue-600">₹500</span></p>
+                        </div>
+                        <p class="mt-4"><strong>Risk-to-Reward Ratio (R:R):</strong> Only take trades where your potential profit is at least twice your potential loss (1:2). The chart illustrates this concept visually.</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="rr-chart"></canvas>
+                    </div>
+                </div>
+                 <p class="mt-6 text-slate-700">Finally, understand that trading is 80% psychology. You must learn to master fear and greed. Reading "Trading in the Zone" by Mark Douglas is highly recommended.</p>
+            </div>
+        </section>
+
+        <section id="phase-4" class="mb-16 scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 4: The Simulator</h2>
+            <p class="text-lg text-slate-600 mb-6">Duration: 2-3 Months</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="mb-6 text-slate-700">It's time for practice without pain. The goal of this phase is to validate your trading plan in a live market without risking real money. This is done through "paper trading" on a demo account. You must log every trade to analyze your performance objectively.</p>
+                <h3 class="text-xl font-semibold mb-4">Example Trading Journal</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100">
+                                <th class="p-2 border border-slate-200">Date</th>
+                                <th class="p-2 border border-slate-200">Asset</th>
+                                <th class="p-2 border border-slate-200">Entry</th>
+                                <th class="p-2 border border-slate-200">Exit</th>
+                                <th class="p-2 border border-slate-200">Reason</th>
+                                <th class="p-2 border border-slate-200">P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trade-log">
+                            <tr>
+                                <td class="p-2 border border-slate-200">2025-07-21</td>
+                                <td class="p-2 border border-slate-200">NIFTY 50</td>
+                                <td class="p-2 border border-slate-200">23500</td>
+                                <td class="p-2 border border-slate-200">23550</td>
+                                <td class="p-2 border border-slate-200">Breakout</td>
+                                <td class="p-2 border border-slate-200 text-green-600">+₹500</td>
+                            </tr>
+                             <tr>
+                                <td class="p-2 border border-slate-200">2025-07-22</td>
+                                <td class="p-2 border border-slate-200">RELIANCE</td>
+                                <td class="p-2 border border-slate-200">2800</td>
+                                <td class="p-2 border border-slate-200">2780</td>
+                                <td class="p-2 border border-slate-200">Trend Reversal</td>
+                                <td class="p-2 border border-slate-200 text-red-600">-₹250</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-4">
+                     <button id="add-trade-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition">Add Example Trade</button>
+                </div>
+                 <p class="mt-6 text-center text-red-600 font-semibold">Important: If you are not profitable on paper after 50-100 trades, DO NOT proceed. Refine your plan.</p>
+            </div>
+        </section>
+
+        <section id="phase-5" class="mb-16 scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 5: Going Live</h2>
+            <p class="text-lg text-slate-600 mb-6">Ongoing</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="mb-6 text-slate-700">Once you've proven your strategy in the simulator, it's time for the real test. This phase is about experiencing trading with real emotions while keeping risk minimal. Your goal here is not to make money, but to learn to control your psychology when real capital is on the line.</p>
+                <ul class="space-y-4">
+                    <li class="flex items-start"><span class="bg-blue-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 mt-1 flex-shrink-0">1</span><span><strong>Choose a reputable, regulated broker.</strong> This is crucial for the safety of your funds.</span></li>
+                    <li class="flex items-start"><span class="bg-blue-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 mt-1 flex-shrink-0">2</span><span><strong>Fund with a small amount.</strong> Use capital you are fully prepared to lose. Think of it as an educational expense.</span></li>
+                    <li class="flex items-start"><span class="bg-blue-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 mt-1 flex-shrink-0">3</span><span><strong>Trade the smallest possible size.</strong> This minimizes losses while you get used to the emotional pressure.</span></li>
+                    <li class="flex items-start"><span class="bg-blue-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center mr-3 mt-1 flex-shrink-0">4</span><span><strong>STICK TO YOUR PLAN.</strong> Your written rules from Phase 3 are your lifeline. Do not deviate.</span></li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="phase-6" class="scroll-mt-28">
+            <h2 class="text-3xl font-bold mb-2 text-blue-600">Phase 6: The Lifelong Learner</h2>
+            <p class="text-lg text-slate-600 mb-6">Ongoing Forever</p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="mb-6 text-slate-700">The market is a dynamic entity, constantly evolving. Your journey as a trader never truly ends; it's a continuous process of improvement and adaptation. The most successful traders are those who commit to being lifelong students of the market.</p>
+                <ul class="space-y-4">
+                    <li class="flex items-start"><span class="text-green-500 mr-3">✔</span><span><strong>Review your trading journal weekly.</strong> Identify what's working, what isn't, and where you're making emotional mistakes.</span></li>
+                    <li class="flex items-start"><span class="text-green-500 mr-3">✔</span><span><strong>Slowly increase your size.</strong> Only after you've been consistently profitable for several months should you consider increasing your risk.</span></li>
+                    <li class="flex items-start"><span class="text-green-500 mr-3">✔</span><span><strong>Never stop learning.</strong> Read books, follow reputable market analysts, and always stay curious. Your growth as a trader depends on it.</span></li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8">
+        <p class="text-slate-500">Your trading journey is a marathon, not a sprint. Be disciplined and patient.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const phaseData = {
+                'phase-1': {
+                    terms: [
+                        { term: 'Trading vs. Investing', def: 'Trading is short-term (days/weeks) for frequent profits. Investing is long-term (years) for wealth accumulation.' },
+                        { term: 'Bull vs. Bear Market', def: 'A bull market is when prices are generally rising. A bear market is when prices are generally falling.' },
+                        { term: 'Long vs. Short', def: 'Going "long" is buying, betting the price will rise. Going "short" is selling, betting the price will fall.' },
+                        { term: 'Bid vs. Ask Price', def: 'The bid is the highest price a buyer will pay. The ask is the lowest price a seller will accept.' },
+                        { term: 'Order Types', def: 'A market order buys/sells immediately. A limit order buys/sells at a specific price you set.' },
+                        { term: 'Key Players', def: 'Brokers (your platform), Institutions (banks/funds), and Regulators (like SEBI) who set the rules.' }
+                    ]
+                },
+                'phase-2': {
+                    candlesticks: [
+                        {
+                            type: 'Bullish',
+                            color: '#22c55e',
+                            wickHeight: 150,
+                            bodyHeight: 80,
+                            bodyTop: 20,
+                        },
+                        {
+                            type: 'Bearish',
+                            color: '#ef4444',
+                            wickHeight: 160,
+                            bodyHeight: 90,
+                            bodyTop: 30,
+                        }
+                    ]
+                }
+            };
+            
+            const keyTermsGrid = document.getElementById('key-terms-grid');
+            phaseData['phase-1'].terms.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card-flip h-32 cursor-pointer';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front bg-slate-100 hover:bg-slate-200">
+                            <h4 class="font-semibold text-center text-slate-700">${item.term}</h4>
+                        </div>
+                        <div class="card-back bg-blue-500 text-white">
+                            <p class="text-sm text-center">${item.def}</p>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    card.classList.toggle('flipped');
+                });
+                keyTermsGrid.appendChild(card);
+            });
+            
+            const candlestickContainer = document.querySelector('.candlestick-container');
+            phaseData['phase-2'].candlesticks.forEach(candle => {
+                const candleEl = document.createElement('div');
+                candleEl.className = 'candlestick';
+
+                const wick = document.createElement('div');
+                wick.className = 'wick';
+                wick.style.height = `${candle.wickHeight}px`;
+
+                const body = document.createElement('div');
+                body.className = 'real-body';
+                body.style.height = `${candle.bodyHeight}px`;
+                body.style.top = `${candle.bodyTop}px`;
+                body.style.backgroundColor = candle.color;
+
+                const labelHigh = document.createElement('div');
+                labelHigh.className = 'label label-high';
+                labelHigh.textContent = 'High';
+
+                const labelLow = document.createElement('div');
+                labelLow.className = 'label label-low';
+                labelLow.textContent = 'Low';
+
+                candleEl.appendChild(wick);
+                candleEl.appendChild(body);
+                candleEl.appendChild(labelHigh);
+                candleEl.appendChild(labelLow);
+                
+                if (candle.type === 'Bullish') {
+                    const labelOpen = document.createElement('div');
+                    labelOpen.className = 'label label-open-bullish';
+                    labelOpen.textContent = 'Open';
+                    const labelClose = document.createElement('div');
+                    labelClose.className = 'label label-close-bullish';
+                    labelClose.textContent = 'Close';
+                    candleEl.appendChild(labelOpen);
+                    candleEl.appendChild(labelClose);
+                } else {
+                    const labelOpen = document.createElement('div');
+                    labelOpen.className = 'label label-open-bearish';
+                    labelOpen.textContent = 'Open';
+                    const labelClose = document.createElement('div');
+                    labelClose.className = 'label label-close-bearish';
+                    labelClose.textContent = 'Close';
+                    candleEl.appendChild(labelOpen);
+                    candleEl.appendChild(labelClose);
+                }
+                
+                candlestickContainer.appendChild(candleEl);
+            });
+
+
+            const capitalInput = document.getElementById('capital');
+            const riskAmountSpan = document.getElementById('risk-amount');
+            const calculateRisk = () => {
+                const capital = parseFloat(capitalInput.value) || 0;
+                const riskAmount = (capital * 0.01).toFixed(2);
+                riskAmountSpan.textContent = `₹${riskAmount}`;
+            };
+            capitalInput.addEventListener('input', calculateRisk);
+            calculateRisk();
+
+            const rrChartCtx = document.getElementById('rr-chart').getContext('2d');
+            const rrChart = new Chart(rrChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Potential Risk', 'Potential Reward'],
+                    datasets: [{
+                        label: 'Risk-to-Reward Ratio (1:2)',
+                        data: [1, 2],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(34, 197, 94, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' unit(s)'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: '1:2 Risk-to-Reward Example'
+                        }
+                    }
+                }
+            });
+            
+            const tradeLogBody = document.getElementById('trade-log');
+            const addTradeBtn = document.getElementById('add-trade-btn');
+            const exampleTrades = [
+                { asset: 'TCS', entry: 3850, exit: 3820, reason: 'Trend Break', pl: -300 },
+                { asset: 'HDFC Bank', entry: 1650, exit: 1680, reason: 'Support Bounce', pl: 450 },
+                { asset: 'USD/INR', entry: 83.5, exit: 83.2, reason: 'Resistance', pl: -200 }
+            ];
+            let tradeCounter = 0;
+            addTradeBtn.addEventListener('click', () => {
+                if (tradeCounter >= exampleTrades.length) {
+                    addTradeBtn.textContent = "No More Examples";
+                    addTradeBtn.disabled = true;
+                    return;
+                };
+
+                const trade = exampleTrades[tradeCounter];
+                const row = document.createElement('tr');
+                const plClass = trade.pl > 0 ? 'text-green-600' : 'text-red-600';
+                const plSign = trade.pl > 0 ? '+' : '';
+                
+                row.innerHTML = `
+                    <td class="p-2 border border-slate-200">2025-07-${23 + tradeCounter}</td>
+                    <td class="p-2 border border-slate-200">${trade.asset}</td>
+                    <td class="p-2 border border-slate-200">${trade.entry}</td>
+                    <td class="p-2 border border-slate-200">${trade.exit}</td>
+                    <td class="p-2 border border-slate-200">${trade.reason}</td>
+                    <td class="p-2 border border-slate-200 ${plClass}">${plSign}₹${Math.abs(trade.pl)}</td>
+                `;
+                tradeLogBody.appendChild(row);
+                tradeCounter++;
+            });
+
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.phase-nav-link');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
